@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<GridPane alignment="CENTER" hgap="10" vgap="10" xmlns="http://javafx.com/javafx/8.0.121"
+          xmlns:fx="http://javafx.com/fxml/1" fx:controller="quran_align_player.Controller">
+    <columnConstraints>
+        <ColumnConstraints/>
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints/>
+    </rowConstraints>
+
+    <VBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+          spacing="12.0" GridPane.halignment="LEFT" GridPane.hgrow="ALWAYS" GridPane.valignment="TOP"
+          GridPane.vgrow="ALWAYS">
+        <children>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <children>
+                    <Button mnemonicParsing="false" onAction="#openMediaFile" text="Load Track"/>
+                </children>
+                <VBox.margin>
+                    <Insets/>
+                </VBox.margin>
+            </HBox>
+            <HBox fx:id="mediaControlHBox" disable="true" spacing="12.0">
+                <children>
+                    <Button fx:id="seekBckButton" mnemonicParsing="false" text="&lt;&lt;"/>
+                    <TextField fx:id="seekValueTextField" prefHeight="26.0" prefWidth="76.0" text="2"
+                               HBox.hgrow="NEVER"/>
+                    <Button fx:id="seekFwdButton" layoutX="10.0" layoutY="10.0" mnemonicParsing="false"
+                            text="&gt;&gt;"/>
+                    <Button fx:id="playButton" mnemonicParsing="false" text="Play"/>
+                    <Label fx:id="durationLabel" alignment="CENTER" contentDisplay="CENTER" minWidth="30.0"
+                           textAlignment="CENTER">
+                        <HBox.margin>
+                            <Insets bottom="6.0" left="6.0" right="6.0" top="6.0"/>
+                        </HBox.margin>
+                    </Label>
+                    <Pane HBox.hgrow="ALWAYS"/>
+                </children>
+            </HBox>
+        </children>
+        <padding>
+            <Insets bottom="6.0" left="6.0" right="6.0" top="6.0"/>
+        </padding>
+    </VBox>
+</GridPane>
