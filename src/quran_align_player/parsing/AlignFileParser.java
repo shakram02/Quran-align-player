@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.HashMap;
+import java.util.List;
 
 public class AlignFileParser {
     public static HashMap<Integer, ParsedSurah> parseFile(String filePath) throws FileNotFoundException {
@@ -14,10 +15,9 @@ public class AlignFileParser {
                 gson.fromJson(new FileReader(filePath), SurahEntry[].class);
 
         for (SurahEntry entry : entries) {
-            ParsedAyah ayah = new ParsedAyah();
-            ayah.number = entry.ayah;
-            ayah.segments = Segment.makeSegmentsFromIntArray(entry.segments);
-
+            List<Segment> segments = Segment.makeSegmentsFromIntArray(entry.segments);
+            ParsedAyah ayah = new ParsedAyah(entry.ayah, segments);
+            
             if (surahs.containsKey(entry.surah)) {
                 ParsedSurah surah = surahs.get(entry.surah);
                 surah.addAyah(ayah);
