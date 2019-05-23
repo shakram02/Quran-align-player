@@ -34,7 +34,8 @@ public class TestMain extends Application {
             Segment currentSegment = ayah.getSegmentAt((int) d.toMillis());
             String[] current = Arrays.copyOfRange(ayah.getText().split(" "),
                     currentSegment.getStartWordIndex(), currentSegment.getEndWordIndex());
-            System.out.println(String.join(" ", current));
+            System.out.print("\r");
+            System.out.print(String.join(" ", current));
         });
         surahPlayer.play();
         Platform.exit();
