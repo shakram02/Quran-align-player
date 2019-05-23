@@ -5,6 +5,11 @@ class SurahEntry {
         int deletions;
         int transpositions;
         int insertions;
+
+        @Override
+        public String toString() {
+            return String.format("D:%d T:%d I:%d", deletions, transpositions, insertions);
+        }
     }
 
     int ayah;

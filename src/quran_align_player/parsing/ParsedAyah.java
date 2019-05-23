@@ -4,11 +4,15 @@ import java.util.List;
 
 public class ParsedAyah {
     private int number;
-    private List<Segment> segments;
+    private final List<Segment> segments;
+    private final SurahEntry.Stats stats;
+    private final String text;
 
-    ParsedAyah(int number, List<Segment> segments) {
+    ParsedAyah(int number, List<Segment> segments, SurahEntry.Stats stats, String text) {
         this.number = number;
         this.segments = segments;
+        this.stats = stats;
+        this.text = text;
     }
 
     int getNumber() {
@@ -23,5 +27,13 @@ public class ParsedAyah {
 
         // This current timestamp is bigger than all elements, return the largest
         return segments.get(segments.size() - 1);
+    }
+
+    public SurahEntry.Stats getStats() {
+        return stats;
+    }
+
+    public String getText() {
+        return text;
     }
 }
