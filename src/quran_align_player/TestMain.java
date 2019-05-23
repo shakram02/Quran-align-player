@@ -29,7 +29,7 @@ public class TestMain extends Application {
         System.out.println(surahs.size());
 
         ParsedSurah s = surahs.get(1);
-        SurahPlayer surahPlayer = new SurahPlayer(s.getSurahNumber(), s.getAyahCount(), "assets", (n, d) -> {
+        SurahPlayer surahPlayer = new SurahPlayer(s.getSurahNumber(), s.getAyahCount(), "assets/001", (n, d) -> {
             ParsedAyah ayah = s.getAyah(n);
             Segment currentSegment = ayah.getSegmentAt((int) d.toMillis());
             String[] current = Arrays.copyOfRange(ayah.getText().split(" "),
