@@ -7,7 +7,10 @@ import quran_align_player.AyahSoundTicker;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class SurahPlayer {
     private final int surahNumber;
@@ -26,9 +29,14 @@ public class SurahPlayer {
     }
 
     public void play() {
+        List<Integer> ayahs = IntStream.range(1, ayahCount).boxed().collect(Collectors.toList());
+        playAyahs(ayahs);
+    }
+
+    public void playAyahs(List<Integer> ayahs) {
         try {
             ayahTrackLock.acquire();
-            for (int i = 1; i <= ayahCount; i++) {
+            for (Integer i : ayahs) {
                 playAyah(i);
                 ayahTrackLock.acquire();
             }
