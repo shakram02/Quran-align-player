@@ -1,4 +1,4 @@
-package quran_align_player.parsing;
+package parsing;
 
 import java.util.ArrayList;
 import java.util.List;

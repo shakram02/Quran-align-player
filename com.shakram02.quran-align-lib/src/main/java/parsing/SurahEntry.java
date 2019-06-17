@@ -1,4 +1,4 @@
-package quran_align_player.parsing;
+package parsing;
 
 class SurahEntry {
     class Stats {
