@@ -29,8 +29,16 @@ public class ParsedAyah {
         return segments.get(segments.size() - 1);
     }
 
-    public SurahEntry.Stats getStats() {
-        return stats;
+    public int getDeletions() {
+        return stats.deletions;
+    }
+
+    public int getTranspositions() {
+        return stats.transpositions;
+    }
+
+    public int getInsertions() {
+        return stats.insertions;
     }
 
     public String getText() {
