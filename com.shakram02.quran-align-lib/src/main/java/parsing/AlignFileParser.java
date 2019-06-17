@@ -1,4 +1,4 @@
-package quran_align_player.parsing;
+package parsing;
 
 import com.google.gson.Gson;
 
