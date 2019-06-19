@@ -2,7 +2,7 @@ package align_parsing;
 
 import java.util.List;
 
-public class ParsedAyah {
+class ParsedAyah {
     private int number;
     private final List<Segment> segments;
     private final SurahEntry.Stats stats;

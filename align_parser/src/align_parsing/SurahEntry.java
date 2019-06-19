@@ -1,6 +1,6 @@
 package align_parsing;
 
-public class SurahEntry {
+class SurahEntry {
     class Stats {
         int deletions;
         int transpositions;

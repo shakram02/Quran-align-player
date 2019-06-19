@@ -3,7 +3,7 @@ package align_parsing;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Segment {
+class Segment {
     int startWordIndex;
     int endWordIndex;
     int startMillis;

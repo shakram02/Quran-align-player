@@ -2,7 +2,7 @@ package align_parsing;
 
 import java.util.HashMap;
 
-public class ParsedSurah {
+class ParsedSurah {
     private final int surahNumber;
     private final HashMap<Integer, ParsedAyah> ayahs = new HashMap<>();
 

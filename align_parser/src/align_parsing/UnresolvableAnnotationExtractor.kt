@@ -1,11 +1,15 @@
 package align_parsing
 
 
+import annotation_parsing.AnnotationParser
 import annotation_parsing.TextEntry
+import java.io.File
 
-class ParseItemFilter(
-    private val parsedAlignFile: HashMap<Int, ParsedSurah>, private val annotationList: List<TextEntry>
+public class UnresolvableAnnotationExtractor(
+    alignFilePath: String, quranTextFilePath: String, annotationFilePath: String
 ) {
+    private val parsedAlignFile: HashMap<Int, ParsedSurah> = AlignFileParser.parseFile(alignFilePath, quranTextFilePath)
+    private val annotationList: List<TextEntry> = AnnotationParser(File(annotationFilePath)).getAllFileSections()
 
     fun extractNonResolvableAnnotations(): HashMap<Int, List<TextEntry>> {
         val alignFileResult = transformAlignFile()

@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class AlignFileParser {
+class AlignFileParser {
     public static HashMap<Integer, ParsedSurah> parseFile(String alignFilePath, String textFilePath) throws FileNotFoundException {
         Gson gson = new Gson();
         HashMap<Integer, ParsedSurah> surahs = new HashMap<>();
