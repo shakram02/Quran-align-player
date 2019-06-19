@@ -19,7 +19,6 @@ public class AlignFileParser {
         LineNumberReader lineNumberReader = new LineNumberReader(new FileReader(textFilePath));
         List<SurahEntry> entries = Arrays.asList(
                 gson.fromJson(new FileReader(alignFilePath), SurahEntry[].class));
-
         // Sort the file
         Comparator<SurahEntry> surahEntryComparator = (x, y) -> {
             boolean equalSurah = x.surah == y.surah;
