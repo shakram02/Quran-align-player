@@ -1,4 +1,4 @@
-package parsing;
+package align_parsing;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package parsing
+package align_parsing
 
 import annotation_parsing.AnnotationParser
 import java.io.File

@@ -1,4 +1,4 @@
-package parsing;
+package align_parsing;
 
 import com.google.gson.Gson;
 
