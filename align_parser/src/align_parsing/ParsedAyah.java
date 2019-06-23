@@ -21,7 +21,7 @@ class ParsedAyah {
 
     public Segment getSegmentAt(int millis) {
         for (Segment s : segments) {
-            if (s.endMillis >= millis)
+            if (s.getEndMillis() >= millis)
                 return s;
         }
 
@@ -39,6 +39,10 @@ class ParsedAyah {
 
     public int getInsertions() {
         return stats.insertions;
+    }
+
+    public List<Segment> getSegments() {
+        return segments;
     }
 
     public String getText() {

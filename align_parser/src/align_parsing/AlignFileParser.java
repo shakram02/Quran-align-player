@@ -27,7 +27,7 @@ class AlignFileParser {
         entries = entries.stream().sorted(surahEntryComparator).collect(Collectors.toList());
 
         for (SurahEntry entry : entries) {
-            List<Segment> segments = Segment.makeSegmentsFromIntArray(entry.segments);
+            List<Segment> segments = Segment.Companion.makeSegmentsFromIntArray(entry.segments);
             ParsedAyah ayah = null;
             try {
                 ayah = new ParsedAyah(entry.ayah, segments, entry.stats, lineNumberReader.readLine());
