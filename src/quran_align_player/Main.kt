@@ -1,15 +1,17 @@
 package quran_align_player
 
 
+import align_parsing.AnnotationFileWriter
+import align_parsing.AnnotationResolver
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
-import quran_align_player.parsing.AlignFileParser
-import quran_align_player.sound.SurahPlayer
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.io.OutputStreamWriter
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.*
 
 class Main : Application() {
 
@@ -40,35 +42,29 @@ class Main : Application() {
         fun main(args: Array<String>) {
             val pathToFile = Paths.get("assets/json_filename.txt")
             val config = Files.readAllLines(pathToFile)
-            val alignFileName = config[0]
-            val textFileName = config[1]
+            val alignFilePath = config[0]
+            val quranTextFilePath = config[1]
+            val annotationFilePath = config[2]
 
-            val surahs = AlignFileParser.parseFile(alignFileName, textFileName)
-            println(surahs.size)
+            val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
 
-            for (key in surahs.keys) {
-                val s = surahs[key]!!
-                for (i in 1 until s.ayahCount + 1) {
-                    val a = s.getAyah(i)
-                    if (a.deletions == 0 && a.insertions == 0 && a.transpositions == 0) continue
+            val unresolved = resolver.extractNonResolvableAnnotations()
 
-                    System.err.println("[$key:$i] D:${a.deletions} | T:${a.transpositions} | I:${a.insertions}\n${a.text}\n")
-                }
-            }
+            AnnotationFileWriter.writeAnnotations("intersected_annotations.txt", unresolved)
+            saveTimeEntries(resolver.extractResolvableAnnotations(), File("auto_resolved_annotations.txt"))
 
-            val s = surahs[1]!!
-            val surahPlayer = SurahPlayer(s.surahNumber, s.ayahCount, "assets/001") { n, d ->
-                val ayah = s.getAyah(n)
-                val currentSegment = ayah.getSegmentAt(d.toMillis().toInt())
-                val current = Arrays.copyOfRange(
-                    ayah.text.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray(),
-                    currentSegment.startWordIndex, currentSegment.endWordIndex
-                )
-                print("\r")
-                print(current.joinToString(" "))
-            }
-            surahPlayer.play()
             Platform.exit()
+        }
+
+        private fun saveTimeEntries(entries: Iterable<String>, savePath: File, append: Boolean = false): Boolean {
+            val writer = OutputStreamWriter(FileOutputStream(savePath, append), Charsets.UTF_8)
+
+            writer.write(entries.joinToString("\r\n"))
+
+            writer.flush()
+            writer.close()
+
+            return true
         }
     }
 }
