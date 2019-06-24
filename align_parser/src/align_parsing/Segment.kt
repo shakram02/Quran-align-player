@@ -6,6 +6,15 @@ internal class Segment(
     val startWordIndex: Int, val endWordIndex: Int,
     val startMillis: Int, val endMillis: Int
 ) {
+    private var text: String = ""
+    fun setText(text: String) {
+        this.text = text
+    }
+
+    fun getText(): String {
+        return text
+    }
+
     companion object {
 
         fun makeSegmentsFromIntArray(segArr: Array<IntArray>): List<Segment> {
@@ -24,6 +33,6 @@ internal class Segment(
     }
 
     override fun toString(): String {
-        return "[$startWordIndex:$endWordIndex]"
+        return "[$startWordIndex:$endWordIndex]\t$text"
     }
 }
