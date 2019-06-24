@@ -20,7 +20,7 @@ class AnnotationResolver(
     private val detailedAnnotationMap = annotationParser.getDetailedMap()
     private val arNumRegex = Regex("\\p{N}")
 
-    fun extractResolvableAnnotations(): List<TimeEntry> {
+    fun extractResolvableAnnotations(): List<String> {
         val resolvableKeys = annotationFileResult.subtract(problematicAlignEntries)
         val result = mutableListOf<TimeEntry>()
         for (key in resolvableKeys) {
@@ -28,12 +28,15 @@ class AnnotationResolver(
             val surah = parsedAlignFile[chapterNum]!!
             val alignEntry = surah.getAyah(sectionNum)
             val sectionEntries = detailedAnnotationMap[chapterNum]!![sectionNum]!!
-            assert(isSegmentAligned(alignEntry, sectionEntries))
+
+            // Check preconditions
+            assertSegmentLineAlignment(alignEntry, sectionEntries)
+            assertTranslationLengthEquality(alignEntry, sectionEntries)
 
             result.addAll(autoAlignSection(alignEntry, sectionEntries))
         }
 
-        return result
+        return result.map { it.serialize() }
     }
 
     // The decent solution is to merge the problematic words in the align file
@@ -53,22 +56,7 @@ class AnnotationResolver(
          */
         var lastSegEnd = 0
         var lastEndIndex = 0
-        val ayahWords = alignEntry.text.split(" ").filter { it.isNotEmpty() }
-        val combinedSectionWords =
-            sectionEntries
-                .map { it.line.replace(arNumRegex, "") }
-                .flatMap { it.split(" ").filter { part -> part.isNotEmpty() } }
 
-        if (ayahWords.size != combinedSectionWords.size) {
-            val chapterNumber = sectionEntries.first().chapterNumber
-            val sectionNumber = sectionEntries.first().sectionNumber
-            if ("$chapterNumber,$sectionNumber" !in unevenTranslationWhitelist) {
-                throw RuntimeException(
-                    "Uneven translations [$chapterNumber:$sectionNumber] \n " +
-                            "$ayahWords\n$combinedSectionWords"
-                )
-            }
-        }
 
         for (entry in sectionEntries) {
             val withoutNumber = entry.line.replace(arNumRegex, "")
@@ -80,6 +68,9 @@ class AnnotationResolver(
 
                 // Seek until a segment is matched with the last word in the TextEntry
                 if (segmentWordIndexInTextEntry < (entryWords.size - 1)) continue
+                else if (segmentWordIndexInTextEntry >= entryWords.size) {
+                    throw IllegalStateException("Exceeded text entry words")
+                }
 
                 // Segments can have insertions, which lead to many words being associated with a segment,
                 // the last word only is of any significance.
@@ -88,8 +79,8 @@ class AnnotationResolver(
                 if (w1 != w2) {
                     System.err.println(
                         "Bad:[${entry.chapterNumber}:${entry.sectionNumber}]?\n " +
-                                "[${segment.getText()}] [${entryWords[segmentWordIndexInTextEntry]}] \n $ayahWords\n" +
-                                "$combinedSectionWords"
+                                "[${segment.getText()}] [${entryWords[segmentWordIndexInTextEntry]}] \n" +
+                                " ${entry.line}\n${alignEntry.text}"
                     )
                     readLine()  // Prompt to see if the words are unacceptable
                 }
@@ -104,7 +95,6 @@ class AnnotationResolver(
             }
         }
 
-        if (result.size != sectionEntries.size) throw RuntimeException()
         return result
     }
 
@@ -134,7 +124,7 @@ class AnnotationResolver(
         return toMap
     }
 
-    private fun isSegmentAligned(alignEntry: ParsedAyah, sectionTextEntries: List<TextEntry>): Boolean {
+    private fun assertSegmentLineAlignment(alignEntry: ParsedAyah, sectionTextEntries: List<TextEntry>): Boolean {
         var lastIndex = 0
         val segments = alignEntry.segments
         for (entry in sectionTextEntries) {
@@ -150,6 +140,27 @@ class AnnotationResolver(
                 )
             }
             lastIndex += (words.size - 1)
+        }
+
+        return true
+    }
+
+    private fun assertTranslationLengthEquality(alignEntry: ParsedAyah, sectionTextEntries: List<TextEntry>): Boolean {
+        val ayahWords = alignEntry.text.split(" ").filter { it.isNotEmpty() }
+        val combinedSectionWords =
+            sectionTextEntries
+                .map { it.line.replace(arNumRegex, "") }
+                .flatMap { it.split(" ").filter { part -> part.isNotEmpty() } }
+
+        if (ayahWords.size != combinedSectionWords.size) {
+            val chapterNumber = sectionTextEntries.first().chapterNumber
+            val sectionNumber = sectionTextEntries.first().sectionNumber
+            if ("$chapterNumber,$sectionNumber" !in unevenTranslationWhitelist) {
+                throw RuntimeException(
+                    "Uneven translations [$chapterNumber:$sectionNumber] \n " +
+                            "$ayahWords\n$combinedSectionWords"
+                )
+            }
         }
 
         return true
