@@ -4,9 +4,9 @@ import annotation_parsing.TextEntry
 import java.io.File
 import java.io.PrintWriter
 
-class AnnotationFileWriter(fileName: String) {
-    private val outputWriter: PrintWriter = File(fileName).printWriter()
-    fun writeAnnotations(annotations: HashMap<Int, List<TextEntry>>) {
+object AnnotationFileWriter {
+    fun writeAnnotations(fileName: String, annotations: HashMap<Int, List<TextEntry>>) {
+        val outputWriter: PrintWriter = File(fileName).printWriter()
         outputWriter.use { writer ->
             for (chapterNumber in annotations.keys.sorted()) {
                 val chapterItems = annotations[chapterNumber]!!
