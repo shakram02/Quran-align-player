@@ -4,12 +4,13 @@ package align_parsing
 import annotation_parsing.AnnotationParser
 import annotation_parsing.TextEntry
 import annotation_parsing.TimeEntry
+import javafx.util.Duration
 import java.io.File
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
-public class AnnotationResolver(
+class AnnotationResolver(
     alignFilePath: String, quranTextFilePath: String, annotationFilePath: String
 ) {
     private val parsedAlignFile: HashMap<Int, ParsedSurah> = AlignFileParser.parseFile(alignFilePath, quranTextFilePath)
@@ -19,8 +20,9 @@ public class AnnotationResolver(
     private val detailedAnnotationMap = annotationParser.getDetailedMap()
     private val arNumRegex = Regex("\\p{N}")
 
-    fun extractResolvableAnnotations() {
+    fun extractResolvableAnnotations(): List<TimeEntry> {
         val resolvableKeys = annotationFileResult.subtract(problematicAlignEntries)
+        val result = mutableListOf<TimeEntry>()
         for (key in resolvableKeys) {
             val (chapterNum, sectionNum) = key.split(",").map { it.toInt() }
             val surah = parsedAlignFile[chapterNum]!!
@@ -28,16 +30,19 @@ public class AnnotationResolver(
             val sectionEntries = detailedAnnotationMap[chapterNum]!![sectionNum]!!
             assert(isSegmentAligned(alignEntry, sectionEntries))
 
-//            val autoAligned = autoAlignSection(alignEntry, sectionEntries)
+            result.addAll(autoAlignSection(alignEntry, sectionEntries))
         }
+
+        return result
     }
 
+    // The decent solution is to merge the problematic words in the align file
+    private val unevenTranslationWhitelist = setOf("041,047")
+
     private fun autoAlignSection(alignEntry: ParsedAyah, sectionEntries: List<TextEntry>): List<TimeEntry> {
-        val sb = StringBuilder()
-        val result: List<TimeEntry> = mutableListOf()
+        val result: MutableList<TimeEntry> = mutableListOf()
         val segmentIterator = alignEntry.segments.iterator()
 
-        var alignedWordCount = 0
         /**
          * Try to align the annotation line with given segments
          * The normal case is that the segments align nicely with annotation text
@@ -46,19 +51,61 @@ public class AnnotationResolver(
          * The worst case is that the last segment matching the end of the text entry
          * has two words and thus will wrap around to the next text entry
          */
-        assert(isSegmentAligned(alignEntry, sectionEntries))
+        var lastSegEnd = 0
+        var lastEndIndex = 0
+        val ayahWords = alignEntry.text.split(" ").filter { it.isNotEmpty() }
+        val combinedSectionWords =
+            sectionEntries
+                .map { it.line.replace(arNumRegex, "") }
+                .flatMap { it.split(" ").filter { part -> part.isNotEmpty() } }
 
-        for (entry in sectionEntries) {
-            val entryWords = entry.line.split(" ")
-            while (segmentIterator.hasNext()) {
-                val segment = segmentIterator.next()
-                // Segment interval is inclusive
-                val count = (segment.endWordIndex - segment.startWordIndex) + 1
-
+        if (ayahWords.size != combinedSectionWords.size) {
+            val chapterNumber = sectionEntries.first().chapterNumber
+            val sectionNumber = sectionEntries.first().sectionNumber
+            if ("$chapterNumber,$sectionNumber" !in unevenTranslationWhitelist) {
+                throw RuntimeException(
+                    "Uneven translations [$chapterNumber:$sectionNumber] \n " +
+                            "$ayahWords\n$combinedSectionWords"
+                )
             }
         }
 
-        TODO("NOT IMPLEMENTED")
+        for (entry in sectionEntries) {
+            val withoutNumber = entry.line.replace(arNumRegex, "")
+            val entryWords = withoutNumber.split(" ").filter { it.isNotEmpty() }
+
+            while (segmentIterator.hasNext()) {
+                val segment = segmentIterator.next()
+                val segmentWordIndexInTextEntry = (segment.endWordIndex - 1) - lastEndIndex
+
+                // Seek until a segment is matched with the last word in the TextEntry
+                if (segmentWordIndexInTextEntry < (entryWords.size - 1)) continue
+
+                // Segments can have insertions, which lead to many words being associated with a segment,
+                // the last word only is of any significance.
+                val w1 = ArabicNormalizer.normalize(segment.getText().split(" ").last())
+                val w2 = ArabicNormalizer.normalize(entryWords[segmentWordIndexInTextEntry])
+                if (w1 != w2) {
+                    System.err.println(
+                        "Bad:[${entry.chapterNumber}:${entry.sectionNumber}]?\n " +
+                                "[${segment.getText()}] [${entryWords[segmentWordIndexInTextEntry]}] \n $ayahWords\n" +
+                                "$combinedSectionWords"
+                    )
+                    readLine()  // Prompt to see if the words are unacceptable
+                }
+
+                val entryDuration = Duration.millis((segment.endMillis - lastSegEnd).toDouble())
+                val timeEntry = TimeEntry(entryDuration, entry)
+                result.add(timeEntry)
+
+                lastSegEnd = segment.endMillis
+                lastEndIndex = segment.endWordIndex
+                break
+            }
+        }
+
+        if (result.size != sectionEntries.size) throw RuntimeException()
+        return result
     }
 
     fun extractNonResolvableAnnotations(): HashMap<Int, List<TextEntry>> {
@@ -116,20 +163,23 @@ public class AnnotationResolver(
 
     private fun getProblematicEntries(): Set<String> {
         val alignFileResult = HashSet<String>()
-        var probCount = 0
-        for (entry in parsedAlignFile.values) {
 
+        for (entry in parsedAlignFile.values) {
             val chapterNumber = entry.surahNumber.toString().padStart(3, '0')
 
             for (i in 1 until entry.ayahCount + 1) {
                 val ayah = entry.getAyah(i)
                 // Deletions are the only thing that'll make problems
-                if (ayah.deletions == 0) continue
+                if (!isProblematic(ayah)) continue
                 val sectionNumber = ayah.number.toString().padStart(3, '0')
                 alignFileResult.add("$chapterNumber,$sectionNumber")
             }
         }
 
         return alignFileResult
+    }
+
+    private fun isProblematic(ayah: ParsedAyah): Boolean {
+        return ayah.deletions != 0
     }
 }
