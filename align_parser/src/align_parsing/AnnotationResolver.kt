@@ -33,10 +33,37 @@ class AnnotationResolver(
             assertSegmentLineAlignment(alignEntry, sectionEntries)
             assertTranslationLengthEquality(alignEntry, sectionEntries)
 
+            if (alignEntry.insertions > 1) {
+                println("${surah.surahNumber}:${alignEntry.number}[${alignEntry.insertions}] \t${alignEntry.text}")
+            }
+
             result.addAll(autoAlignSection(alignEntry, sectionEntries))
         }
 
-        return result.map { it.serialize() }
+        val entryStrings = ArrayList<String>()
+        var lastChapterNumber = ""
+        var lastSectionNumber = ""
+        var lineNumber = 0
+        for (entry in result) {
+            val textEntry = entry.textEntry
+            val currentSection = textEntry.sectionNumber
+            val currentChapter = textEntry.chapterNumber
+
+            if (currentChapter == lastChapterNumber && currentSection == lastSectionNumber) {
+                lineNumber++
+            } else {
+                lastChapterNumber = currentChapter
+                lastSectionNumber = currentSection
+                lineNumber = 0
+            }
+
+            entryStrings.add(
+                "$currentChapter\t$currentSection\t${lineNumber.toString().padStart(2, '0')}\t" +
+                        "${"%.2f".format(entry.duration.toSeconds())}\t${textEntry.line}"
+            )
+        }
+
+        return entryStrings
     }
 
     // The decent solution is to merge the problematic words in the align file
