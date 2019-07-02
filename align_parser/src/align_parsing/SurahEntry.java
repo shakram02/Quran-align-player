@@ -1,4 +1,4 @@
-package parsing;
+package align_parsing;
 
 class SurahEntry {
     class Stats {
