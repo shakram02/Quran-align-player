@@ -7,7 +7,6 @@ import annotation_parsing.TimeEntry
 import javafx.util.Duration
 import java.io.File
 import java.util.*
-import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 class AnnotationResolver(
@@ -32,11 +31,6 @@ class AnnotationResolver(
             // Check preconditions
             assertSegmentLineAlignment(alignEntry, sectionEntries)
             assertTranslationLengthEquality(alignEntry, sectionEntries)
-
-            if (alignEntry.insertions > 1) {
-                println("${surah.surahNumber}:${alignEntry.number}[${alignEntry.insertions}] \t${alignEntry.text}")
-            }
-
             result.addAll(autoAlignSection(alignEntry, sectionEntries))
         }
 
@@ -68,6 +62,26 @@ class AnnotationResolver(
 
     // The decent solution is to merge the problematic words in the align file
     private val unevenTranslationWhitelist = setOf("041,047")
+
+
+    fun extractUnresolvableAnnotations(): List<String> {
+        // Find entries that needed to be annotated and had alignment problems
+        val unresolvableKeys = annotationFileResult.intersect(problematicAlignEntries)
+
+
+        val result = mutableListOf<String>()
+        for (key in unresolvableKeys) {
+            val (chapterNum, sectionNum) = key.split(",").map { it.toInt() }
+            val sectionEntries = detailedAnnotationMap[chapterNum]!![sectionNum]!!
+
+            for ((sentenceIndex, sentence) in sectionEntries.withIndex()) {
+                val stringIndex = "%02d".format(sentenceIndex)
+                result.add("${sentence.chapterNumber}\t${sentence.sectionNumber}\t$stringIndex\t${sentence.line}")
+            }
+        }
+
+        return result
+    }
 
     private fun autoAlignSection(alignEntry: ParsedAyah, sectionEntries: List<TextEntry>): List<TimeEntry> {
         val result: MutableList<TimeEntry> = mutableListOf()
@@ -123,32 +137,6 @@ class AnnotationResolver(
         }
 
         return result
-    }
-
-    fun extractNonResolvableAnnotations(): HashMap<Int, List<TextEntry>> {
-        val resultSet = annotationFileResult.intersect(problematicAlignEntries)
-        System.err.println(resultSet.size)
-
-        val annotationList = annotationParser.getAnnotationMap().values.flatten()
-        val unresolvableEntries = annotationList.filter {
-            val key = "${it.chapterNumber},${it.sectionNumber}"
-            key in resultSet
-        }
-
-        val result = HashMap<Int, ArrayList<TextEntry>>()
-        unresolvableEntries.map {
-            val key = it.chapterNumber.toInt()
-            if (!result.containsKey(key)) {
-                result[key] = arrayListOf()
-            }
-
-            result[key]!!.add(it)
-        }
-
-        val toMap = HashMap<Int, List<TextEntry>>()
-        result.map { toMap.put(it.key, it.value.toList()) }
-
-        return toMap
     }
 
     private fun assertSegmentLineAlignment(alignEntry: ParsedAyah, sectionTextEntries: List<TextEntry>): Boolean {
