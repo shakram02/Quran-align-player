@@ -68,15 +68,22 @@ class AnnotationResolver(
         // Find entries that needed to be annotated and had alignment problems
         val unresolvableKeys = annotationFileResult.intersect(problematicAlignEntries)
 
+        val sorted = unresolvableKeys.sortedWith(Comparator { p0, p1 ->
+            val (ch0, sc0) = p0.split(",").map { it.toInt() }
+            val (ch1, sc1) = p1.split(",").map { it.toInt() }
+
+            if (ch0.compareTo(ch1) != 0) return@Comparator ch0.compareTo(ch1)
+            return@Comparator sc0.compareTo(sc1)
+        })
 
         val result = mutableListOf<String>()
-        for (key in unresolvableKeys) {
+        for (key in sorted) {
             val (chapterNum, sectionNum) = key.split(",").map { it.toInt() }
             val sectionEntries = detailedAnnotationMap[chapterNum]!![sectionNum]!!
 
             for ((sentenceIndex, sentence) in sectionEntries.withIndex()) {
-                val stringIndex = "%02d".format(sentenceIndex)
-                result.add("${sentence.chapterNumber}\t${sentence.sectionNumber}\t$stringIndex\t${sentence.line}")
+                val sentenceNumber = "%02d".format(sentenceIndex)
+                result.add("${sentence.chapterNumber}\t${sentence.sectionNumber}\t$sentenceNumber\t${sentence.line}")
             }
         }
 
