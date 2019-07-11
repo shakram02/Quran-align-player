@@ -2,7 +2,7 @@ package align_parsing
 
 internal class ParsedAyah
     (
-    val number: Int, val segments: List<Segment>, private val stats: SurahEntry.Stats,
+    val surahNumber: Int, val number: Int, val segments: List<Segment>, private val stats: SurahEntry.Stats,
     val text: String
 ) {
 
