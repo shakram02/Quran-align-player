@@ -52,7 +52,15 @@ class Main : Application() {
             println("Select mode: [1]\n1) Resolve annotations\n2)Extract word by word file")
             val mode = readLine()
             if (mode == "2") {
-                extractWordByWordFile(alignFilePath, fullQuranAnnotationFilePath, quranTextFilePath, recitationId)
+                val wordAnnotationDirectory = File("${recitationId}_word_annotations")
+                wordAnnotationDirectory.mkdir()
+                extractWordByWordFile(
+                    alignFilePath,
+                    fullQuranAnnotationFilePath,
+                    quranTextFilePath,
+                    wordAnnotationDirectory,
+                    recitationId
+                )
             } else {
                 val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
                 val resolvable = resolver.autoAlignedEntries
@@ -66,7 +74,7 @@ class Main : Application() {
         private fun extractWordByWordFile(
             alignFilePath: String,
             annotationFilePath: String,
-            quranTextFilePath: String, recitationId: String
+            quranTextFilePath: String, wordAnnotationDirectory: File, recitationId: String
         ) {
             val lines = FileReader(annotationFilePath).readLines()
             val alignFile = ResolvedAnnotationFileParser().parseAnnotationLines(lines)
@@ -76,14 +84,32 @@ class Main : Application() {
             val alignedWords = wordAligner.alignWordsWithTextEntries(alignFile, parsedAlignFile)
             val toBeAlignedWords = wordAligner.getLinesWithDeletions()
 
-            for (w in alignedWords) {
-                println(w)
+
+            val surahsAlignWords = alignedWords.groupBy { it.surahNumber }
+            for (s in surahsAlignWords.keys.sorted()) {
+                val wordAlignList = mutableListOf<String>()
+                val surahWords = surahsAlignWords[s]!!
+                for (word in surahWords) {
+                    wordAlignList.add(word.toString())
+                }
+                println(wordAlignList.joinToString("\n"))
+                val filePath = File("${s.toString().padStart(3, '0')}_${recitationId}_word_by_word_annotations.txt")
+                val surahAnnotationFile = Paths.get(wordAnnotationDirectory.toString(), filePath.toString()).toFile()
+                saveStringIterable(
+                    wordAlignList,
+                    surahAnnotationFile
+                )
             }
 
-            System.err.println("Found ${toBeAlignedWords.size} Ayahs with deletions")
+            val toBeAnnotated = mutableListOf<String>()
             for (w in toBeAlignedWords) {
-                println(w.serialize())
+                toBeAnnotated.add(w.serialize())
             }
+
+            saveStringIterable(
+                toBeAnnotated,
+                File("${recitationId}_unresolvable_word_by_word_annotations.txt")
+            )
         }
 
         private fun saveExtractedAnnotations(

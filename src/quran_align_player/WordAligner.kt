@@ -17,9 +17,8 @@ class WordAligner(private val surahNumberLimitStart: Int) {
         val quranLines = quranLineEntries.filter { it.key >= surahNumberLimitStart }
         val workAlignFile = quranAlignFile.filter { it.key >= surahNumberLimitStart }
 
-        val sortedSurahKeys = workAlignFile.keys.sorted().asReversed()
         // Print surah info form last [114] one to the first [1]
-        for (surahNum in sortedSurahKeys) {
+        for (surahNum in workAlignFile.keys.sorted()) {
             for (ayahNum in workAlignFile[surahNum]!!.keys.sorted()) {
                 val ayahInfo = workAlignFile[surahNum]!![ayahNum]!!
                 val textEntries = quranLines[surahNum]!![ayahNum]!!
@@ -59,7 +58,20 @@ class WordAligner(private val surahNumberLimitStart: Int) {
         return lineMapping
     }
 
-    fun getLinesWithDeletions(): List<TimestampedTextEntry> {
-        return ayahsWithDeletions
+    fun getLinesWithDeletions(): List<TextEntry> {
+        // ayahsWithDeletions is already sorted
+        val result = mutableListOf<TextEntry>()
+        val arNum = Regex("\\p{N}")
+        for (entry in ayahsWithDeletions) {
+            // Split each entry to multiple word entries to be used by SoundAnno
+            val words = entry.textEntry.line.replace(arNum, "")
+                .split(" ").filter { it.isNotBlank() }
+            val textEntry = entry.textEntry
+            val splitEntries =
+                words.map { TextEntry(textEntry.surahNumber, textEntry.ayahNumber, textEntry.sentenceNumber, it) }
+
+            result.addAll(splitEntries)
+        }
+        return result
     }
 }
