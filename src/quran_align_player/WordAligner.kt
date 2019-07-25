@@ -7,44 +7,41 @@ import quran_annotations.TextEntry
 import quran_annotations.TimestampedTextEntry
 
 class WordAligner(private val surahNumberLimitStart: Int) {
+    private val ayahsWithDeletions: MutableList<TimestampedTextEntry> = mutableListOf()
 
     fun alignWordsWithTextEntries(
         quranLineEntries: Map<Int, Map<Int, List<TimestampedTextEntry>>>,
         quranAlignFile: Map<Int, Map<Int, ParsedAyah>>
-    ) {
-        val quranLines = quranLineEntries.filter { it.key  >= surahNumberLimitStart }
+    ): List<WordAlignedTimestampedEntry> {
+        val result = mutableListOf<WordAlignedTimestampedEntry>()
+        val quranLines = quranLineEntries.filter { it.key >= surahNumberLimitStart }
         val workAlignFile = quranAlignFile.filter { it.key >= surahNumberLimitStart }
 
-        var ayahsWithDeletions = 0
         val sortedSurahKeys = workAlignFile.keys.sorted().asReversed()
         // Print surah info form last [114] one to the first [1]
         for (surahNum in sortedSurahKeys) {
-
             for (ayahNum in workAlignFile[surahNum]!!.keys.sorted()) {
                 val ayahInfo = workAlignFile[surahNum]!![ayahNum]!!
+                val textEntries = quranLines[surahNum]!![ayahNum]!!
+
                 if (ayahInfo.deletions != 0) {
-                    System.out.flush()  // Avoid racing with stdout
-                    System.err.println("Ayah with deletion [$surahNum:$ayahNum]")
-                    ayahsWithDeletions++
+                    // TODO: include segments?
+                    ayahsWithDeletions.addAll(textEntries)
                     continue
                 }
 
-                val textEntries = quranLines[surahNum]!![ayahNum]!!
                 val lineMappedWords = alignSegmentWithLine(ayahInfo.segments, textEntries.map { it.textEntry })
 
-                for ((segmentText, lineIndex) in lineMappedWords) {
-                    println("$surahNum\t$ayahNum\t$lineIndex\t$segmentText")
+                for ((segment, lineIndex) in lineMappedWords) {
+                    result.add(WordAlignedTimestampedEntry(surahNum, ayahNum, lineIndex, segment))
                 }
             }
-            println()
         }
-
-        System.out.flush()  // Avoid racing with stdout
-        System.err.println("Found $ayahsWithDeletions Ayahs with deletions")
+        return result
     }
 
-    private fun alignSegmentWithLine(segments: List<Segment>, textEntries: List<TextEntry>): List<Pair<String, Int>> {
-        val lineMapping: MutableList<Pair<String, Int>> = mutableListOf()
+    private fun alignSegmentWithLine(segments: List<Segment>, textEntries: List<TextEntry>): List<Pair<Segment, Int>> {
+        val lineMapping: MutableList<Pair<Segment, Int>> = mutableListOf()
         val normalizedTextEntryLines = textEntries.map { ArabicNormalizer.normalize(it.line) }.toTypedArray()
 
         for (segment in segments) {
@@ -56,9 +53,13 @@ class WordAligner(private val surahNumberLimitStart: Int) {
             normalizedTextEntryLines[lineIndex] =
                 normalizedTextEntryLines[lineIndex].replaceFirst(normalizedSegmentText, "")
 
-            lineMapping.add(Pair(segmentText, lineIndex))
+            lineMapping.add(Pair(segment, lineIndex))
         }
 
         return lineMapping
+    }
+
+    fun getLinesWithDeletions(): List<TimestampedTextEntry> {
+        return ayahsWithDeletions
     }
 }

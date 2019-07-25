@@ -21,5 +21,16 @@
         </SOURCES>
       </library>
     </orderEntry>
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../quran_annotations/out/artifacts/quran_annotations_jar/quran_annotations.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/../quran_annotations/out/artifacts/quran_annotations_jar/quran_annotations.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
   </component>
 </module>

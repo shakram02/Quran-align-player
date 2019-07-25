@@ -73,7 +73,17 @@ class Main : Application() {
             val surahNumberLimitStart = 98
             val parsedAlignFile = AlignFileParser.parseFile(alignFilePath, quranTextFilePath)
             val wordAligner = WordAligner(surahNumberLimitStart)
-            wordAligner.alignWordsWithTextEntries(alignFile, parsedAlignFile)
+            val alignedWords = wordAligner.alignWordsWithTextEntries(alignFile, parsedAlignFile)
+            val toBeAlignedWords = wordAligner.getLinesWithDeletions()
+
+            for (w in alignedWords) {
+                println(w)
+            }
+
+            System.err.println("Found ${toBeAlignedWords.size} Ayahs with deletions")
+            for (w in toBeAlignedWords) {
+                println(w.serialize())
+            }
         }
 
         private fun saveExtractedAnnotations(
