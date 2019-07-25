@@ -6,10 +6,10 @@ import javafx.application.Platform
 import javafx.stage.Stage
 import quran_align_parser.AlignFileParser
 import quran_align_parser.AnnotationResolver
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStreamWriter
+import quran_align_parser.MergedEntries
+import quran_align_parser.MergedTimestampedEntry
+import quran_annotations.ResolvedAnnotationFileParser
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -45,56 +45,55 @@ class Main : Application() {
             val alignFilePath = config[0]
             val quranTextFilePath = config[1]
             val annotationFilePath = config[2]
+            val fullQuranAnnotationFilePath = config[3]
             val recitationId = File(alignFilePath).nameWithoutExtension
 
-            extractWordByWordFile(alignFilePath, quranTextFilePath, recitationId)
-//            resolveRecitationAnnotations(alignFilePath, quranTextFilePath, annotationFilePath, recitationId)
+
+            println("Select mode: [1]\n1) Resolve annotations\n2)Extract word by word file")
+            val mode = readLine()
+            if (mode == "2") {
+                extractWordByWordFile(alignFilePath, fullQuranAnnotationFilePath, quranTextFilePath, recitationId)
+            } else {
+                val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
+                val resolvable = resolver.autoAlignedEntries
+                val unresolvableEntries = resolver.problematicEntries
+                saveExtractedAnnotations(resolvable, unresolvableEntries, recitationId)
+            }
+
             Platform.exit()
         }
 
         private fun extractWordByWordFile(
             alignFilePath: String,
+            annotationFilePath: String,
             quranTextFilePath: String, recitationId: String
         ) {
+            val lines = FileReader(annotationFilePath).readLines()
+            val alignFile = ResolvedAnnotationFileParser().parseAnnotationLines(lines)
+            val surahNumberLimitStart = 98
             val parsedAlignFile = AlignFileParser.parseFile(alignFilePath, quranTextFilePath)
-            var ayahsWithDeletions = 0
-            // Print surah info form last [114] one to the first [1]
-            for (surahNum in parsedAlignFile.keys.sorted().asReversed()) {
-                if (surahNum < 78) break
-                for (ayahNum in parsedAlignFile[surahNum]!!.keys.sorted()) {
-                    val ayahInfo = parsedAlignFile[surahNum]!![ayahNum]!!
-                    if (ayahInfo.deletions != 0) {
-                        System.out.flush()  // Avoid racing with stdout
-                        System.err.println("Ayah with deletion [$surahNum:$ayahNum]")
-                        ayahsWithDeletions++
-                        continue
-                    }
-                    for (segment in ayahInfo.segments) {
-                        println("$surahNum\t$ayahNum\t$segment")
-                    }
-                }
-                println()
-            }
-
-            System.out.flush()  // Avoid racing with stdout
-            System.err.println("Found $ayahsWithDeletions Ayahs with deletions")
+            val wordAligner = WordAligner(surahNumberLimitStart)
+            wordAligner.alignWordsWithTextEntries(alignFile, parsedAlignFile)
         }
 
-        private fun resolveRecitationAnnotations(
-            alignFilePath: String,
-            quranTextFilePath: String,
-            annotationFilePath: String,
+        private fun saveExtractedAnnotations(
+            resolvable: List<MergedTimestampedEntry>,
+            unresolvableEntries: MergedEntries,
             recitationId: String
         ) {
-            val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
-            val (resolvable, unresolvable) = resolver.processAnnotations()
+
+            val unresolvable =
+                unresolvableEntries.flatMap { entry ->
+                    entry.value.flatMap { it.value.second }
+                        .map { it.serialize() }
+                }
             saveStringIterable(
                 unresolvable,
                 File("${recitationId}_unresolvable_annotations.txt")
             )
 
             saveStringIterable(
-                resolvable,
+                resolvable.flatMap { pair -> pair.second.map { it.serialize() } },
                 File("${recitationId}_auto_resolved_annotations.txt")
             )
         }
