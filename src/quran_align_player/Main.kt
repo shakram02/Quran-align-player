@@ -1,10 +1,11 @@
 package quran_align_player
 
 
-import align_parsing.AnnotationResolver
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
+import quran_align_parser.AlignFileParser
+import quran_align_parser.AnnotationResolver
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -46,19 +47,56 @@ class Main : Application() {
             val annotationFilePath = config[2]
             val recitationId = File(alignFilePath).nameWithoutExtension
 
-            val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
+            extractWordByWordFile(alignFilePath, quranTextFilePath, recitationId)
+//            resolveRecitationAnnotations(alignFilePath, quranTextFilePath, annotationFilePath, recitationId)
+            Platform.exit()
+        }
 
+        private fun extractWordByWordFile(
+            alignFilePath: String,
+            quranTextFilePath: String, recitationId: String
+        ) {
+            val parsedAlignFile = AlignFileParser.parseFile(alignFilePath, quranTextFilePath)
+            var ayahsWithDeletions = 0
+            // Print surah info form last [114] one to the first [1]
+            for (surahNum in parsedAlignFile.keys.sorted().asReversed()) {
+                if (surahNum < 78) break
+                for (ayahNum in parsedAlignFile[surahNum]!!.keys.sorted()) {
+                    val ayahInfo = parsedAlignFile[surahNum]!![ayahNum]!!
+                    if (ayahInfo.deletions != 0) {
+                        System.out.flush()  // Avoid racing with stdout
+                        System.err.println("Ayah with deletion [$surahNum:$ayahNum]")
+                        ayahsWithDeletions++
+                        continue
+                    }
+                    for (segment in ayahInfo.segments) {
+                        println("$surahNum\t$ayahNum\t$segment")
+                    }
+                }
+                println()
+            }
+
+            System.out.flush()  // Avoid racing with stdout
+            System.err.println("Found $ayahsWithDeletions Ayahs with deletions")
+        }
+
+        private fun resolveRecitationAnnotations(
+            alignFilePath: String,
+            quranTextFilePath: String,
+            annotationFilePath: String,
+            recitationId: String
+        ) {
+            val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
+            val (resolvable, unresolvable) = resolver.processAnnotations()
             saveStringIterable(
-                resolver.extractUnresolvableAnnotations(),
+                unresolvable,
                 File("${recitationId}_unresolvable_annotations.txt")
             )
 
             saveStringIterable(
-                resolver.extractResolvableAnnotations(),
+                resolvable,
                 File("${recitationId}_auto_resolved_annotations.txt")
             )
-
-            Platform.exit()
         }
 
         private fun saveStringIterable(entries: List<String>, savePath: File, append: Boolean = false): Boolean {
