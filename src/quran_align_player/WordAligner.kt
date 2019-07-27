@@ -8,6 +8,7 @@ import quran_annotations.TimestampedTextEntry
 
 class WordAligner(private val surahNumberLimitStart: Int) {
     private val ayahsWithDeletions: MutableList<TimestampedTextEntry> = mutableListOf()
+    private val arabicNumberRegex = Regex("\\p{N}")
 
     fun alignWordsWithTextEntries(
         quranLineEntries: Map<Int, Map<Int, List<TimestampedTextEntry>>>,
@@ -41,9 +42,12 @@ class WordAligner(private val surahNumberLimitStart: Int) {
 
     private fun alignSegmentWithLine(segments: List<Segment>, textEntries: List<TextEntry>): List<Pair<Segment, Int>> {
         val lineMapping: MutableList<Pair<Segment, Int>> = mutableListOf()
-        val normalizedTextEntryLines = textEntries.map { ArabicNormalizer.normalize(it.line) }.toTypedArray()
+        val normalizedTextEntryLines =
+            textEntries.map {
+                ArabicNormalizer.normalize(it.line.replace(arabicNumberRegex, ""))
+            }.toTypedArray()
 
-        for (segment in segments) {
+        for ((i, segment) in segments.withIndex()) {
             val segmentText = segment.getText()
             val normalizedSegmentText = ArabicNormalizer.normalize(segmentText)
             val lineIndex = normalizedTextEntryLines.indexOfFirst { it.contains(normalizedSegmentText) }
@@ -52,7 +56,23 @@ class WordAligner(private val surahNumberLimitStart: Int) {
             normalizedTextEntryLines[lineIndex] =
                 normalizedTextEntryLines[lineIndex].replaceFirst(normalizedSegmentText, "")
 
-            lineMapping.add(Pair(segment, lineIndex))
+            // Amend segment durations using the start and end millis
+            // the align word detector will not mark silence after a word as part of the word
+            // which makes problems when trying to do highlighting
+            if (i < segments.size - 1) {
+                val nextSegment = segments[i + 1]
+                val amendedSegment =
+                    Segment(
+                        segment.startWordIndex, segment.endWordIndex,
+                        segment.startMillis, nextSegment.startMillis
+                    )
+                amendedSegment.setText(segment.getText())
+                lineMapping.add(Pair(amendedSegment, lineIndex))
+            } else {
+                // Last segment, doesn't need to be fixed
+                // (and can't be fixed as each Ayah is a separate unit)
+                lineMapping.add(Pair(segment, lineIndex))
+            }
         }
 
         return lineMapping
@@ -61,10 +81,10 @@ class WordAligner(private val surahNumberLimitStart: Int) {
     fun getLinesWithDeletions(): List<TextEntry> {
         // ayahsWithDeletions is already sorted
         val result = mutableListOf<TextEntry>()
-        val arNum = Regex("\\p{N}")
+
         for (entry in ayahsWithDeletions) {
             // Split each entry to multiple word entries to be used by SoundAnno
-            val words = entry.textEntry.line.replace(arNum, "")
+            val words = entry.textEntry.line.replace(arabicNumberRegex, "")
                 .split(" ").filter { it.isNotBlank() }
             val textEntry = entry.textEntry
             val splitEntries =
