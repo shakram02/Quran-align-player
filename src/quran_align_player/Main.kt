@@ -78,28 +78,17 @@ class Main : Application() {
         ) {
             val lines = FileReader(annotationFilePath).readLines()
             val alignFile = ResolvedAnnotationFileParser().parseAnnotationLines(lines)
-            val surahNumberLimitStart = 98
+            val surahNumberLimitStart = 78
             val parsedAlignFile = AlignFileParser.parseFile(alignFilePath, quranTextFilePath)
             val wordAligner = WordAligner(surahNumberLimitStart)
             val alignedWords = wordAligner.alignWordsWithTextEntries(alignFile, parsedAlignFile)
             val toBeAlignedWords = wordAligner.getLinesWithDeletions()
 
-
-            val surahsAlignWords = alignedWords.groupBy { it.surahNumber }
-            for (s in surahsAlignWords.keys.sorted()) {
-                val wordAlignList = mutableListOf<String>()
-                val surahWords = surahsAlignWords[s]!!
-                for (word in surahWords) {
-                    wordAlignList.add(word.toString())
-                }
-                println(wordAlignList.joinToString("\n"))
-                val filePath = File("${s.toString().padStart(3, '0')}_${recitationId}_word_by_word_annotations.txt")
-                val surahAnnotationFile = Paths.get(wordAnnotationDirectory.toString(), filePath.toString()).toFile()
-                saveStringIterable(
-                    wordAlignList,
-                    surahAnnotationFile
-                )
-            }
+            // Outputs files to be used by chapter_annotation_merger script
+            saveStringIterable(
+                alignedWords.map { it.toString() },
+                File("${recitationId}_auto_resolved_word_by_word_annotations.txt")
+            )
 
             val toBeAnnotated = mutableListOf<String>()
             for (w in toBeAlignedWords) {
