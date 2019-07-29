@@ -1,12 +1,16 @@
 package quran_align_player
 
-import quran_align_parser.ArabicNormalizer
-import quran_align_parser.ParsedAyah
-import quran_align_parser.Segment
+import align_generator.ArabicNormalizer
+import align_generator.AyahAudioDurationInfo
+import align_generator.ParsedAyah
+import align_generator.Segment
 import quran_annotations.TextEntry
 import quran_annotations.TimestampedTextEntry
 
-class WordAligner(private val surahNumberLimitStart: Int) {
+class WordAligner(
+    private val surahNumberLimitStart: Int,
+    private val ayahAudioDurationInfo: AyahAudioDurationInfo
+) {
     private val ayahsWithDeletions: MutableList<TimestampedTextEntry> = mutableListOf()
     private val arabicNumberRegex = Regex("\\p{N}")
 
@@ -46,6 +50,8 @@ class WordAligner(private val surahNumberLimitStart: Int) {
             textEntries.map {
                 ArabicNormalizer.normalize(it.line.replace(arabicNumberRegex, ""))
             }.toTypedArray()
+        val surahNumber = textEntries.first().surahNumber
+        val ayahNumber = textEntries.first().ayahNumber
 
         for ((i, segment) in segments.withIndex()) {
             val segmentText = segment.getText()
@@ -70,7 +76,14 @@ class WordAligner(private val surahNumberLimitStart: Int) {
                 lineMapping.add(Pair(amendedSegment, lineIndex))
             } else {
                 // Last segment, doesn't need to be fixed
-                // (and can't be fixed as each Ayah is a separate unit)
+                // last word goes to end of audio
+
+                val audioDuration = (ayahAudioDurationInfo.getAyahAudioLength(surahNumber, ayahNumber) * 1000).toInt()
+                val amendedSegment = Segment(
+                    segment.startWordIndex, segment.endWordIndex,
+                    segment.startMillis, audioDuration
+                )
+                amendedSegment.setText(segment.getText())
                 lineMapping.add(Pair(segment, lineIndex))
             }
         }

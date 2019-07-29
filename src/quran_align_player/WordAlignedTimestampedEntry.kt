@@ -1,6 +1,7 @@
 package quran_align_player
 
-import quran_align_parser.Segment
+import align_generator.Segment
+
 
 data class WordAlignedTimestampedEntry(
     val surahNumber: Int,
