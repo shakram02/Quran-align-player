@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/align_parser/align_parser.iml" filepath="$PROJECT_DIR$/align_parser/align_parser.iml" />
       <module fileurl="file://$PROJECT_DIR$/quran_align_player.iml" filepath="$PROJECT_DIR$/quran_align_player.iml" />
     </modules>
   </component>

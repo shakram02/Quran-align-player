@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
-  <component name="ExternalSystem" linkedProjectPath="$MODULE_DIR$/com.shakram02.quran-align-lib" rootProjectPath="$MODULE_DIR$/com.shakram02.quran-align-lib" />
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
@@ -11,6 +10,17 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="library" exported="" name="com.google.code.gson:gson:2.8.5" level="project" />
-    <orderEntry type="module" module-name="align_parser" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../quran_annotations/out/artifacts/quran_annotations_jar/quran_annotations.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/../quran_annotations/out/artifacts/quran_annotations_jar/quran_annotations.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="library" name="quran_annotation_generator" level="project" />
   </component>
 </module>

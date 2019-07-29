@@ -1,14 +1,15 @@
 package quran_align_player
 
 
-import align_parsing.AnnotationResolver
+import align_generator.*
+import com.google.gson.Gson
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStreamWriter
+import quran_annotations.SurahAnnotationMap
+import quran_annotations.TimestampedAnnotationFileParser
+import quran_annotations.UnresolvedAnnotationFileParser
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
 
@@ -39,26 +40,113 @@ class Main : Application() {
         @Throws(IOException::class)
         @JvmStatic
         fun main(args: Array<String>) {
+            // TODO: docs
             val configPath = Paths.get("assets/json_filename.txt")
+            val recitationId = "Husary_Muallim_128kbps"
+            System.err.println("Generating information for [$recitationId]")
             val config = Files.readAllLines(configPath)
-            val alignFilePath = config[0]
-            val quranTextFilePath = config[1]
-            val annotationFilePath = config[2]
-            val recitationId = File(alignFilePath).nameWithoutExtension
+            val quranTextFilePath = config[0]
+            val fullUnresolvedQuranAnnotationFilePath = config[1]
+            val alignFilePath = config[2].replace("{}", recitationId)
+            val resolvedAnnotationsFilePath = config[3].replace("{}", recitationId)
+            val quranAyahDurationFile = config[4].replace("{}", recitationId)
+            val annotationLines = File(fullUnresolvedQuranAnnotationFilePath).readAsCleanStringList()
+            val quranAnnotationEntries = UnresolvedAnnotationFileParser().parseAnnotationLines(annotationLines)
+            val quranLines = File(quranTextFilePath).readAsCleanStringList()
+            val quranAlign = listOf(*Gson().fromJson(FileReader(alignFilePath), Array<SurahEntry>::class.java))
+            val parsedAlignFile = AlignFileParser.parseFile(quranAlign, quranLines)
+            val ayahAudioDurationInfo = AyahAudioDurationInfo(File(quranAyahDurationFile).readAsCleanStringList())
 
-            val resolver = AnnotationResolver(alignFilePath, quranTextFilePath, annotationFilePath)
+            println("Select mode: [1]\n1) Resolve annotations\n2)Extract word by word file")
+            val mode = readLine()
+            if (mode == "2") {
+                extractWordByWordFile(
+                    parsedAlignFile,
+                    resolvedAnnotationsFilePath,
+                    ayahAudioDurationInfo,
+                    recitationId
+                )
+            } else {
+                resolveAnnotations(
+                    parsedAlignFile,
+                    quranAnnotationEntries,
+                    ayahAudioDurationInfo,
+                    recitationId
+                )
+            }
+
+            Platform.exit()
+        }
+
+        private fun resolveAnnotations(
+            parsedAlignFile: ParsedAlignEntries,
+            annotationEntries: Map<Int, SurahAnnotationMap>,
+            ayahAudioDurationInfo: AyahAudioDurationInfo,
+
+            recitationId: String
+        ) {
+
+            val resolver =
+                AnnotationResolver(
+                    parsedAlignFile,
+                    annotationEntries,
+                    ayahAudioDurationInfo
+                )
+            val resolvable = resolver.autoAlignedEntries
+            val unresolvableEntries = resolver.problematicEntries
+            saveExtractedAnnotations(resolvable, unresolvableEntries, recitationId)
+        }
+
+        private fun extractWordByWordFile(
+            alignFile: ParsedAlignEntries,
+            resolvedAnnotationsFilePath: String,
+            ayahAudioDurationInfo: AyahAudioDurationInfo,
+            recitationId: String
+        ) {
+            val lines = FileReader(resolvedAnnotationsFilePath).readLines()
+            val timestampedAnnotationFile = TimestampedAnnotationFileParser().parseAnnotationLines(lines)
+            val surahNumberLimitStart = 78
+            val wordAligner = WordAligner(surahNumberLimitStart, ayahAudioDurationInfo)
+            val alignedWords = wordAligner.alignWordsWithTextEntries(timestampedAnnotationFile, alignFile)
+            val toBeAlignedWords = wordAligner.getLinesWithDeletions()
+
+            // Outputs files to be used by chapter_annotation_merger script
+            saveStringIterable(
+                alignedWords.map { it.toString() },
+                File("${recitationId}_auto_resolved_word_by_word_annotations.txt")
+            )
+
+            val toBeAnnotated = mutableListOf<String>()
+            for (w in toBeAlignedWords) {
+                toBeAnnotated.add(w.serialize())
+            }
 
             saveStringIterable(
-                resolver.extractUnresolvableAnnotations(),
+                toBeAnnotated,
+                File("${recitationId}_unresolvable_word_by_word_annotations.txt")
+            )
+        }
+
+        private fun saveExtractedAnnotations(
+            resolvable: List<MergedTimestampedEntry>,
+            unresolvableEntries: MergedEntries,
+            recitationId: String
+        ) {
+
+            val unresolvable =
+                unresolvableEntries.flatMap { entry ->
+                    entry.value.flatMap { it.value.second }
+                        .map { it.serialize() }
+                }
+            saveStringIterable(
+                unresolvable,
                 File("${recitationId}_unresolvable_annotations.txt")
             )
 
             saveStringIterable(
-                resolver.extractResolvableAnnotations(),
+                resolvable.flatMap { pair -> pair.second.map { it.serialize() } },
                 File("${recitationId}_auto_resolved_annotations.txt")
             )
-
-            Platform.exit()
         }
 
         private fun saveStringIterable(entries: List<String>, savePath: File, append: Boolean = false): Boolean {
@@ -70,6 +158,10 @@ class Main : Application() {
             writer.close()
 
             return true
+        }
+
+        private fun File.readAsCleanStringList(): List<String> {
+            return this.readLines().map { it.trim() }.filter { it.isNotBlank() }
         }
     }
 }
