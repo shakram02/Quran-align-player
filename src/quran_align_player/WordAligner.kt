@@ -46,14 +46,15 @@ class WordAligner(
 
     private fun alignSegmentWithLine(segments: List<Segment>, textEntries: List<TextEntry>): List<Pair<Segment, Int>> {
         val lineMapping: MutableList<Pair<Segment, Int>> = mutableListOf()
+        val segmentIterator = segments.listIterator()
         val normalizedTextEntryLines =
             textEntries.map {
                 ArabicNormalizer.normalize(it.line.replace(arabicNumberRegex, ""))
             }.toTypedArray()
         val surahNumber = textEntries.first().surahNumber
         val ayahNumber = textEntries.first().ayahNumber
-
-        for ((i, segment) in segments.withIndex()) {
+        while (segmentIterator.hasNext()) {
+            val segment = segmentIterator.next()
             val segmentText = segment.getText()
             val normalizedSegmentText = ArabicNormalizer.normalize(segmentText)
             val lineIndex = normalizedTextEntryLines.indexOfFirst { it.contains(normalizedSegmentText) }
@@ -65,8 +66,8 @@ class WordAligner(
             // Amend segment durations using the start and end millis
             // the align word detector will not mark silence after a word as part of the word
             // which makes problems when trying to do highlighting
-            if (i < segments.size - 1) {
-                val nextSegment = segments[i + 1]
+            if (segmentIterator.hasNext()) {
+                val nextSegment = segments[segmentIterator.nextIndex()]
                 val amendedSegment =
                     Segment(
                         segment.startWordIndex, segment.endWordIndex,
@@ -77,14 +78,13 @@ class WordAligner(
             } else {
                 // Last segment, doesn't need to be fixed
                 // last word goes to end of audio
-
                 val audioDuration = (ayahAudioDurationInfo.getAyahAudioLength(surahNumber, ayahNumber) * 1000).toInt()
                 val amendedSegment = Segment(
                     segment.startWordIndex, segment.endWordIndex,
                     segment.startMillis, audioDuration
                 )
                 amendedSegment.setText(segment.getText())
-                lineMapping.add(Pair(segment, lineIndex))
+                lineMapping.add(Pair(amendedSegment, lineIndex))
             }
         }
 

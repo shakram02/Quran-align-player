@@ -36,13 +36,17 @@ class Main : Application() {
 
     }
 
+
     companion object {
+
         @Throws(IOException::class)
         @JvmStatic
         fun main(args: Array<String>) {
             // TODO: docs
+            print("Enter recitation ID [Husary_128kbps]:")
+            val startSurahNum = 1
+            val recitationId: String = readLine() ?: "Husary_128kbps"
             val configPath = Paths.get("assets/json_filename.txt")
-            val recitationId = "Husary_Muallim_128kbps"
             System.err.println("Generating information for [$recitationId]")
             val config = Files.readAllLines(configPath)
             val quranTextFilePath = config[0]
@@ -51,21 +55,32 @@ class Main : Application() {
             val resolvedAnnotationsFilePath = config[3].replace("{}", recitationId)
             val quranAyahDurationFile = config[4].replace("{}", recitationId)
             val annotationLines = File(fullUnresolvedQuranAnnotationFilePath).readAsCleanStringList()
-            val quranAnnotationEntries = UnresolvedAnnotationFileParser().parseAnnotationLines(annotationLines)
+            val quranAnnotationEntries =
+                UnresolvedAnnotationFileParser().parseAnnotationLines(annotationLines)
+                    .filter { it.key >= startSurahNum }
             val quranLines = File(quranTextFilePath).readAsCleanStringList()
             val quranAlign = listOf(*Gson().fromJson(FileReader(alignFilePath), Array<SurahEntry>::class.java))
             val parsedAlignFile = AlignFileParser.parseFile(quranAlign, quranLines)
             val ayahAudioDurationInfo = AyahAudioDurationInfo(File(quranAyahDurationFile).readAsCleanStringList())
 
-            println("Select mode: [1]\n1) Resolve annotations\n2)Extract word by word file")
-            val mode = readLine()
-            if (mode == "2") {
-                extractWordByWordFile(
-                    parsedAlignFile,
-                    resolvedAnnotationsFilePath,
-                    ayahAudioDurationInfo,
-                    recitationId
-                )
+            if (recitationId == "Husary_Muallim_128kbps") {
+                println("Select mode: [1]\n1) Resolve annotations\n2)Extract word by word file")
+                val mode = readLine()
+                if (mode == "2") {
+                    extractWordByWordFile(
+                        parsedAlignFile,
+                        resolvedAnnotationsFilePath,
+                        ayahAudioDurationInfo,
+                        recitationId
+                    )
+                } else {
+                    resolveAnnotations(
+                        parsedAlignFile,
+                        quranAnnotationEntries,
+                        ayahAudioDurationInfo,
+                        recitationId
+                    )
+                }
             } else {
                 resolveAnnotations(
                     parsedAlignFile,
@@ -74,7 +89,6 @@ class Main : Application() {
                     recitationId
                 )
             }
-
             Platform.exit()
         }
 
