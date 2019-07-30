@@ -8,7 +8,6 @@ import quran_annotations.TextEntry
 import quran_annotations.TimestampedTextEntry
 
 class WordAligner(
-    private val surahNumberLimitStart: Int,
     private val ayahAudioDurationInfo: AyahAudioDurationInfo
 ) {
     private val ayahsWithDeletions: MutableList<TimestampedTextEntry> = mutableListOf()
@@ -19,14 +18,12 @@ class WordAligner(
         quranAlignFile: Map<Int, Map<Int, ParsedAyah>>
     ): List<WordAlignedTimestampedEntry> {
         val result = mutableListOf<WordAlignedTimestampedEntry>()
-        val quranLines = quranLineEntries.filter { it.key >= surahNumberLimitStart }
-        val workAlignFile = quranAlignFile.filter { it.key >= surahNumberLimitStart }
 
         // Print surah info form last [114] one to the first [1]
-        for (surahNum in workAlignFile.keys.sorted()) {
-            for (ayahNum in workAlignFile[surahNum]!!.keys.sorted()) {
-                val ayahInfo = workAlignFile[surahNum]!![ayahNum]!!
-                val textEntries = quranLines[surahNum]!![ayahNum]!!
+        for (surahNum in quranAlignFile.keys.sorted()) {
+            for (ayahNum in quranAlignFile[surahNum]!!.keys.sorted()) {
+                val ayahInfo = quranAlignFile[surahNum]!![ayahNum]!!
+                val textEntries = quranLineEntries[surahNum]!![ayahNum]!!
 
                 if (ayahInfo.deletions != 0) {
                     // TODO: include segments?

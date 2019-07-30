@@ -38,15 +38,14 @@ class Main : Application() {
 
 
     companion object {
-
         @Throws(IOException::class)
         @JvmStatic
         fun main(args: Array<String>) {
             // TODO: docs
-            print("Enter recitation ID [Husary_128kbps]:")
-            val startSurahNum = 1
-            val recitationId: String = readLine() ?: "Husary_128kbps"
+            val startSurahNum = 78
             val configPath = Paths.get("assets/json_filename.txt")
+            println("Enter recitation ID [S:$startSurahNum] [Husary_128kbps]:")
+            val recitationId: String = readLine() ?: "Husary_128kbps"
             System.err.println("Generating information for [$recitationId]")
             val config = Files.readAllLines(configPath)
             val quranTextFilePath = config[0]
@@ -60,7 +59,8 @@ class Main : Application() {
                     .filter { it.key >= startSurahNum }
             val quranLines = File(quranTextFilePath).readAsCleanStringList()
             val quranAlign = listOf(*Gson().fromJson(FileReader(alignFilePath), Array<SurahEntry>::class.java))
-            val parsedAlignFile = AlignFileParser.parseFile(quranAlign, quranLines)
+            val parsedAlignFile =
+                AlignFileParser.parseFile(quranAlign, quranLines).filterKeys { it >= startSurahNum }
             val ayahAudioDurationInfo = AyahAudioDurationInfo(File(quranAyahDurationFile).readAsCleanStringList())
 
             if (recitationId == "Husary_Muallim_128kbps") {
@@ -119,8 +119,7 @@ class Main : Application() {
         ) {
             val lines = FileReader(resolvedAnnotationsFilePath).readLines()
             val timestampedAnnotationFile = TimestampedAnnotationFileParser().parseAnnotationLines(lines)
-            val surahNumberLimitStart = 78
-            val wordAligner = WordAligner(surahNumberLimitStart, ayahAudioDurationInfo)
+            val wordAligner = WordAligner(ayahAudioDurationInfo)
             val alignedWords = wordAligner.alignWordsWithTextEntries(timestampedAnnotationFile, alignFile)
             val toBeAlignedWords = wordAligner.getLinesWithDeletions()
 
