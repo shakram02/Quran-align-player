@@ -42,11 +42,19 @@ class Main : Application() {
         @JvmStatic
         fun main(args: Array<String>) {
             // TODO: docs
-            val startSurahNum = 78
+            val startSurahNum = 1
+            val defaultRecitationId = "Husary_128kbps"
             val configPath = Paths.get("assets/json_filename.txt")
-            println("Enter recitation ID [S:$startSurahNum] [Husary_128kbps]:")
-            val recitationId: String = readLine() ?: "Husary_128kbps"
+            print("Enter recitation ID [S:$startSurahNum] [Husary_128kbps]: ")
+
+            val recitationIdInput = readLine()!!
+            val recitationId: String = if (recitationIdInput.isNotBlank()) {
+                recitationIdInput
+            } else {
+                defaultRecitationId
+            }
             System.err.println("Generating information for [$recitationId]")
+
             val config = Files.readAllLines(configPath)
             val quranTextFilePath = config[0]
             val fullUnresolvedQuranAnnotationFilePath = config[1]
